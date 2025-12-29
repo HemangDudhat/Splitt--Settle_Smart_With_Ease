@@ -16,7 +16,7 @@ export default function Header() {
   const path = usePathname();
 
   return (
-    <header className="fixed top-0 w-full border-b bg-white/95 backdrop-blur z-50 supports-[backdrop-filter]:bg-white/60">
+    <header className="fixed top-0 w-full border-b bg-white/95  backdrop-blur z-50 supports-[backdrop-filter]:bg-linear-to-bl from-blue-50 via-white to-blue-100">
       <nav className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
           <Image
@@ -29,16 +29,16 @@ export default function Header() {
         </Link>
 
         {path === "/" && (
-          <div className="hidden md:flex items-center gap-6">
+          <div className="hidden md:flex ml-20 items-center gap-6">
             <Link
               href="#features"
-              className="text-sm font-medium hover:text-green-600 transition"
+              className="text-sm font-medium hover:text-blue-900 px-3 py-1  border border-transparent rounded-md hover:border-blue-900 transition"
             >
               Features
             </Link>
             <Link
               href="#how-it-works"
-              className="text-sm font-medium hover:text-green-600 transition"
+              className="text-sm font-medium hover:text-blue-900 px-3 py-1  border border-transparent rounded-md hover:border-blue-900 transition"
             >
               How It Works
             </Link>
@@ -50,7 +50,7 @@ export default function Header() {
             <Link href="/dashboard">
               <Button
                 variant="outline"
-                className="hidden md:inline-flex items-center gap-2 hover:text-green-600 hover:border-green-600 transition"
+                className="hidden md:inline-flex items-center gap-2 hover:text-blue-900 hover:bg-blue-50 transition"
               >
                 <LayoutDashboard className="h-4 w-4" />
                 Dashboard
@@ -78,7 +78,7 @@ export default function Header() {
             </SignInButton>
 
             <SignUpButton>
-              <Button className="bg-green-600 hover:bg-green-700 border-none">
+              <Button className="">
                 Get Started
               </Button>
             </SignUpButton>
