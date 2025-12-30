@@ -81,18 +81,20 @@ export default function LandingPage() {
 
           <div className="mx-auto mt-12 grid max-w-5xl gap-6 md:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map(({ title, Icon, bg, color, description }) => (
-             
+              
              <Card
                 key={title}
                 className="flex flex-col items-center space-y-4 p-6 text-center"
+
               >
-                <div className={`rounded-full p-3 ${bg}`}>
+                <motion.div whileHover={{scale:1.3}} className={`rounded-full p-3 ${bg}`}>
                   <Icon className={`h-6 w-6 ${color}`} />
-                </div>
+                </motion.div>
 
                 <h3 className="text-xl font-bold">{title}</h3>
                 <p className="text-gray-500">{description}</p>
               </Card>
+ 
             ))}
           </div>
         </div>
