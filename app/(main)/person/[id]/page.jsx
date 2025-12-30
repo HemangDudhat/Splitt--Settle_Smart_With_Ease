@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/convex/_generated/api";
-import { useConvexQuery } from "@/hooks/use-convex-query";
+import { useConvexQuery } from "@/hooks/useConvexQuery";
 import { BarLoader } from "react-spinners";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";

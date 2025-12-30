@@ -1,6 +1,6 @@
 "use client";
 
-import { useConvexQuery, useConvexMutation } from "@/hooks/use-convex-query";
+import { useConvexQuery, useConvexMutation } from "@/hooks/useConvexQuery";
 import { api } from "@/convex/_generated/api";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";

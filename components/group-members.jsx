@@ -1,6 +1,6 @@
 "use client";
 
-import { useConvexQuery } from "@/hooks/use-convex-query";
+import { useConvexQuery } from "@/hooks/useConvexQuery";
 import { api } from "@/convex/_generated/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";

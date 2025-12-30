@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useUser } from "@clerk/nextjs";
-import { useConvexQuery } from "@/hooks/use-convex-query";
+import { useConvexQuery } from "@/hooks/useConvexQuery";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useConvexQuery } from "@/hooks/use-convex-query";
+import { useConvexQuery } from "@/hooks/useConvexQuery";
 import { api } from "@/convex/_generated/api";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
