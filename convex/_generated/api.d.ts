@@ -10,6 +10,10 @@
 
 import type * as contacts from "../contacts.js";
 import type * as dashboard from "../dashboard.js";
+<<<<<<< HEAD
+=======
+import type * as email from "../email.js";
+>>>>>>> 9375c799461f75c8ec1f88990ec9c9e7d8d72392
 import type * as expenses from "../expenses.js";
 import type * as groups from "../groups.js";
 import type * as inngest from "../inngest.js";
@@ -26,6 +30,10 @@ import type {
 declare const fullApi: ApiFromModules<{
   contacts: typeof contacts;
   dashboard: typeof dashboard;
+<<<<<<< HEAD
+=======
+  email: typeof email;
+>>>>>>> 9375c799461f75c8ec1f88990ec9c9e7d8d72392
   expenses: typeof expenses;
   groups: typeof groups;
   inngest: typeof inngest;
