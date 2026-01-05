@@ -111,8 +111,4 @@ export function SettlementList({
       })}
     </div>
   );
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 9375c799461f75c8ec1f88990ec9c9e7d8d72392
