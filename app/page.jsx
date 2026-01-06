@@ -128,7 +128,7 @@ export default function LandingPage() {
       </section>
 
       {/* ───── Testimonials ───── */}
-      <section className="bg-gray-50 py-20">
+      {/* <section className="bg-gray-50 py-20">
         <div className="container mx-auto px-4 md:px-6 text-center">
           <Badge variant="outline" className="bg-blue-100 text-blue-900">
             Testimonials
@@ -144,7 +144,7 @@ export default function LandingPage() {
                   <p className="text-gray-500">{quote}</p>
                   <div className="flex items-center space-x-3">
                     <Avatar>
-                      {/* Placeholder avatar */}
+                      
                       <AvatarImage src={image} alt={name} />
                       <AvatarFallback className="uppercase">
                         {name.charAt(0)}
@@ -160,7 +160,7 @@ export default function LandingPage() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* ───── Call‑to‑Action ───── */}
       <section className="py-20 gradient">
