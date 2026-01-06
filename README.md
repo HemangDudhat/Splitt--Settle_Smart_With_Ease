@@ -1,36 +1,113 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# 💸 Splitt
 
-## Getting Started
+**Splitt** is a smart expense-sharing platform that helps individuals and groups split expenses seamlessly and settle balances whenever desired. It automates reminders, provides monthly spending insights, and makes managing shared finances effortless.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## 🚀 Overview
+
+Managing shared expenses can get messy—especially in groups.  
+**Splitt** simplifies this by allowing users to track expenses, split costs fairly, settle dues, and receive automated reminders and insights — all in one place.
+
+Whether it’s friends, roommates, or trips, Splitt keeps finances transparent and stress-free.
+
+---
+
+## ✨ Features
+
+- 🔐 Authentication with Clerk  
+- 👥 Create or join groups  
+- 💰 Add & manage expenses  
+- ➗ Split expenses between individuals or groups  
+- ✅ Settle expenses anytime  
+- 📧 Daily email reminders for pending payments  
+- 📊 Monthly expenditure insights  
+- ⚡ Background jobs & notifications powered by Inngest  
+
+---
+
+## 🛠 Tech Stack
+
+### Frontend
+- Next.js
+- Tailwind CSS
+
+### Authentication
+- Clerk
+
+### Database & Backend Logic
+- Convex
+
+### Email & Notifications
+- Resend
+- Inngest
+
+### AI (Optional / Insights)
+- Gemini API
+
+---
+
+## 🔄 Application Flow
+
+1. User signs up / logs in  
+2. User creates or joins a group  
+3. Expenses are added  
+4. Expenses are split among individuals or groups  
+5. Expenses can be settled anytime  
+6. Users receive:
+   - Daily email reminders for pending payments  
+   - Monthly insights of their expenditure  
+
+---
+
+## ⚙️ Installation & Setup
+
+### 📋 Prerequisites
+
+Ensure you have the following:
+
+- Node.js 18+
+- A Convex account
+- A Clerk account
+- A Resend account
+- An Inngest account
+
+---
+
+### 🧩 Setup Steps
+
+1. Clone the repository
+   ```bash
+   git clone <repository-url>
+2. Install dependencies
+   ```bash
+   npm install
+3. Run the project locally by running the following commands simultaneously in separate terminals:
+   ```bash
+   npm run dev
+   npx convex dev
+   npx inngest-cli@latest dev
+
+## Environment variables
+
 ```
+# Convex (Deployment)
+# CONVEX_DEPLOYMENT=your_convex_deployment_id
+# NEXT_PUBLIC_CONVEX_URL=your_convex_url
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+# Clerk Authentication
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+CLERK_SECRET_KEY=your_clerk_secret_key
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+CLERK_JWT_ISSUER_DOMAIN=your_clerk_jwt_issuer_domain
 
-## Learn More
+# Email Service (Resend)
+RESEND_API_KEY=your_resend_api_key
+RESEND_FROM_EMAIL=your_verified_resend_domain
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# AI Insights
+GEMINI_API_KEY=your_gemini_api_key
+```
