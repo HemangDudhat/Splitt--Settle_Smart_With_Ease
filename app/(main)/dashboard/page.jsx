@@ -2,7 +2,7 @@
 
 import { api } from "@/convex/_generated/api";
 import { useConvexQuery } from "@/hooks/useConvexQuery";
-import { BarLoader } from "react-spinners";
+import { BarLoader, PropagateLoader } from "react-spinners";
 import {
   Card,
   CardContent,
@@ -43,7 +43,7 @@ export default function Dashboard() {
     <div className="container mx-auto py-6 space-y-6">
       {isLoading ? (
         <div className="w-full py-12 flex justify-center">
-          <BarLoader width={"100%"} color="#36d7b7" />
+          <PropagateLoader width={"100%"} color="#6868cb" />
         </div>
       ) : (
         <>

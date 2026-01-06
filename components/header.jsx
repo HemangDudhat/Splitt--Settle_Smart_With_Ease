@@ -50,7 +50,7 @@ export default function Header() {
             <Link href="/dashboard">
               <Button
                 variant="outline"
-                className="hidden md:inline-flex items-center gap-2 hover:text-blue-900 hover:bg-blue-50 transition"
+                className="hidden md:inline-flex items-center gap-2 border border-transparent hover:text-blue-900 hover:bg-blue-50 hover:border-blue-900 transition"
               >
                 <LayoutDashboard className="h-4 w-4" />
                 Dashboard
@@ -85,7 +85,7 @@ export default function Header() {
           </Unauthenticated>
         </div>
       </nav>
-      {isLoading && <BarLoader width={"100%"} color="#36d7b7" />}
+      {isLoading && <BarLoader width={"100%"} color="#6868cb" />}
     </header>
   );
 }

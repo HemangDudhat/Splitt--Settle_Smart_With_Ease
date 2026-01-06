@@ -72,7 +72,7 @@ export function ExpenseSummary({ monthlySpending, totalSpent }) {
                 formatter={(value) => [`$${value.toFixed(2)}`, "Amount"]}
                 labelFormatter={() => "Spending"}
               />
-              <Bar dataKey="amount" fill="#36d7b7" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="amount" fill="#6868cb" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

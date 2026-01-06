@@ -1,12 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ExpenseForm } from "./components/expense-form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
+import { PropagateLoader } from "react-spinners";
+import { useConvexQuery } from "@/hooks/useConvexQuery";
+import { api } from "@/convex/_generated/api";
 
 export default function NewExpensePage() {
-  const router = useRouter();
 
   return (
     <div className="container max-w-3xl mx-auto py-6">

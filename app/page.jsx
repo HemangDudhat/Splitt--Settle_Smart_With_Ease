@@ -168,7 +168,7 @@ export default function LandingPage() {
           <h2 className="text-3xl font-extrabold tracking-tight md:text-4xl text-white">
             Ready to simplify expense sharing?
           </h2>
-          <p className="mx-auto max-w-[600px] text-green-100 md:text-xl/relaxed">
+          <p className="mx-auto max-w-[600px] text-blue-100 md:text-xl/relaxed">
             Join thousands of users who have made splitting expenses
             stress‑free.
           </p>

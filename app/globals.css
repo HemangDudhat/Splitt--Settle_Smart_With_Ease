@@ -129,3 +129,6 @@
 @utility gradient-title {
   @apply gradient font-extrabold tracking-tighter text-transparent bg-clip-text pb-1 pr-2;
 }
+@utility gradien {
+  @apply bg-linear-to-br from-[#6868cb] to-[#a1b4fa];
+}

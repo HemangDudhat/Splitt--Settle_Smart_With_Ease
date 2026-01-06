@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/convex/_generated/api";
 import { useConvexQuery } from "@/hooks/useConvexQuery";
-import { BarLoader } from "react-spinners";
+import { BarLoader, PropagateLoader } from "react-spinners";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,9 +26,9 @@ export default function PersonExpensesPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto py-12">
-        <BarLoader width={"100%"} color="#36d7b7" />
-      </div>
+        <div className="w-full py-12 flex justify-center">
+          <PropagateLoader width={"100%"} color="#6868cb" />
+        </div>
     );
   }
 
