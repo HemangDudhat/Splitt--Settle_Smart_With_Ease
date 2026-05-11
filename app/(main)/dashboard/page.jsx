@@ -43,7 +43,7 @@ export default function Dashboard() {
     <div className="container mx-auto py-6 space-y-6">
       {isLoading ? (
         <div className="w-full py-12 flex justify-center">
-          <PropagateLoader width={"100%"} color="#6868cb" />
+          <PropagateLoader width={"100%"} color="#7086d8" />
         </div>
       ) : (
         <>

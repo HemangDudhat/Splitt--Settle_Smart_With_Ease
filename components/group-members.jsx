@@ -50,4 +50,4 @@ export function GroupMembers({ members }) {
       })}
     </div>
   );
-}
+};

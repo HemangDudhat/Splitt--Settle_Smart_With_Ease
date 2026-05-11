@@ -143,4 +143,4 @@ export default function GroupExpensesPage() {
       </Tabs>
     </div>
   );
-}
+};

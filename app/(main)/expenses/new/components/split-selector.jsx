@@ -274,5 +274,5 @@ export function SplitSelector({
         </div>
       )}
     </div>
-  );
-}
+  )
+};

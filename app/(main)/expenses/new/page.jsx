@@ -42,5 +42,5 @@ export default function NewExpensePage() {
         </CardContent>
       </Card>
     </div>
-  );
-}
+  )
+};
