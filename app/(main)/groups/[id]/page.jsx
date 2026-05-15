@@ -5,11 +5,11 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/convex/_generated/api";
 import { useConvexQuery, useConvexMutation } from "@/hooks/useConvexQuery";
-import { BarLoader, PropagateLoader } from "react-spinners";
+import { PropagateLoader } from "react-spinners";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlusCircle, ArrowLeftRight, ArrowLeft, Users, Trash2, Loader2 } from "lucide-react";
+import { PlusCircle, ArrowLeftRight, ArrowLeft, Users, Trash2, Loader2, ArrowRight, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { ExpenseList } from "@/components/expense-list";
 import { SettlementList } from "@/components/settlement-list";
@@ -21,7 +21,7 @@ export default function GroupExpensesPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("expenses");
 
-   const { data, isLoading } = useConvexQuery(api.groups.getGroupExpenses, {
+  const { data, isLoading } = useConvexQuery(api.groups.getGroupExpenses, {
     groupId: params.id,
   });
 
@@ -45,6 +45,7 @@ export default function GroupExpensesPage() {
   const expenses = data?.expenses || [];
   const settlements = data?.settlements || [];
   const balances = data?.balances || [];
+  const simplifiedDebts = data?.simplifiedDebts || [];
   const userLookupMap = data?.userLookupMap || {};
 
   const isAdmin = members.find(m => m.id === currentUser?._id)?.role === "admin";
@@ -90,7 +91,7 @@ export default function GroupExpensesPage() {
             </div>
           </div>
 
-           <div className="flex gap-2">
+          <div className="flex gap-2">
             {isAdmin && (
               <Button 
                 variant="outline" 
@@ -118,6 +119,66 @@ export default function GroupExpensesPage() {
           </div>
         </div>
       </div>
+
+      {/* Simplified Debts Card - full width at top */}
+      {simplifiedDebts.length > 0 && (
+        <Card className="mb-6 border-primary/20 bg-primary/5">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-primary" />
+              <CardTitle className="text-xl">Simplified Debts</CardTitle>
+            </div>
+            <CardDescription>
+              The minimum transactions to settle everyone — {simplifiedDebts.length} payment{simplifiedDebts.length > 1 ? "s" : ""} needed.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {simplifiedDebts.map((debt, idx) => {
+                const payer = userLookupMap[debt.from];
+                const receiver = userLookupMap[debt.to];
+                const isCurrentUserPayer = debt.from === currentUser?._id;
+                return (
+                  <div
+                    key={idx}
+                    className={`flex items-center justify-between p-3 rounded-lg border bg-background transition-colors ${
+                      isCurrentUserPayer ? "border-amber-300 bg-amber-50/50" : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className={`font-semibold ${isCurrentUserPayer ? "text-amber-700" : ""}`}>
+                        {isCurrentUserPayer ? "You" : (payer?.name || "Unknown")}
+                      </span>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-semibold">
+                        {debt.to === currentUser?._id ? "You" : (receiver?.name || "Unknown")}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="font-bold text-base">
+                        ₹{debt.amount.toFixed(2)}
+                      </span>
+                      {isCurrentUserPayer && (
+                        <Button
+                          asChild
+                          size="sm"
+                          variant="default"
+                        >
+                          <Link
+                            href={`/settlements/group/${params.id}?to=${debt.to}&amount=${debt.amount}`}
+                          >
+                            Settle
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Grid layout for group details */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
@@ -180,3 +241,4 @@ export default function GroupExpensesPage() {
     </div>
   );
 };
+

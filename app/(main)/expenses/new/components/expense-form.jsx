@@ -44,6 +44,7 @@ const expenseSchema = z.object({
 
 export function ExpenseForm({ type = "individual", onSuccess }) {
   const [participants, setParticipants] = useState([]);
+  const [groupMembers, setGroupMembers] = useState([]); // All members in selected group
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [splits, setSplits] = useState([]);
@@ -241,15 +242,13 @@ export function ExpenseForm({ type = "individual", onSuccess }) {
             <Label>Group</Label>
             <GroupSelector
               onChange={(group) => {
-                // Only update if the group has changed to prevent loops
                 if (!selectedGroup || selectedGroup.id !== group.id) {
                   setSelectedGroup(group);
                   setValue("groupId", group.id);
-
-                  // Update participants with the group members
+                  // Set all group members, defaulting all as participants
                   if (group.members && Array.isArray(group.members)) {
-                    // Set the participants once, don't re-set if they're the same
-                    setParticipants(group.members);
+                    setGroupMembers(group.members);
+                    setParticipants(group.members); // All checked by default
                   }
                 }
               }}
@@ -258,6 +257,44 @@ export function ExpenseForm({ type = "individual", onSuccess }) {
               <p className="text-xs text-amber-600">
                 Please select a group to continue
               </p>
+            )}
+            {/* Member toggle checkboxes — shown once a group is selected */}
+            {selectedGroup && groupMembers.length > 0 && (
+              <div className="mt-3">
+                <p className="text-sm font-medium mb-2">Who's involved in this expense?</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {groupMembers.map((member) => {
+                    const isChecked = participants.some((p) => p.id === member.id);
+                    return (
+                      <label
+                        key={member.id}
+                        className={`flex items-center gap-2 p-2 rounded-md border cursor-pointer transition-colors ${
+                          isChecked ? "bg-primary/5 border-primary/30" : "border-muted"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setParticipants((prev) => [...prev, member]);
+                            } else {
+                              // Don't allow deselecting if only 1 or 2 remain
+                              if (participants.length <= 2) return;
+                              setParticipants((prev) => prev.filter((p) => p.id !== member.id));
+                            }
+                          }}
+                          className="accent-primary"
+                        />
+                        <span className="text-sm truncate">{member.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {participants.length} of {groupMembers.length} members involved
+                </p>
+              </div>
             )}
           </div>
         )}
@@ -281,14 +318,19 @@ export function ExpenseForm({ type = "individual", onSuccess }) {
         {/* Paid by selector */}
         <div className="space-y-2">
           <Label>Paid by</Label>
+          {type === "group" && groupMembers.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Any group member can pay, even if they're not involved in this expense.
+            </p>
+          )}
           <select
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             {...register("paidByUserId")}
           >
             <option value="">Select who paid</option>
-            {participants.map((participant) => (
-              <option key={participant.id} value={participant.id}>
-                {participant.id === currentUser._id ? "You" : participant.name}
+            {(type === "group" ? groupMembers : participants).map((person) => (
+              <option key={person.id} value={person.id}>
+                {person.id === currentUser._id ? "You" : person.name}
               </option>
             ))}
           </select>

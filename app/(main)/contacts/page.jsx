@@ -66,7 +66,7 @@ export default function ContactsPage() {
           {users.length === 0 ? (
             <Card>
               <CardContent className="py-6 text-center text-muted-foreground">
-                No contacts yet. Add an expense with someone to see them here.
+                No friends yet. Add friends from the Connections page to see them here.
               </CardContent>
             </Card>
           ) : (

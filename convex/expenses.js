@@ -37,6 +37,36 @@ export const createExpense = mutation({
       if (!isMember) {
         throw new Error("You are not a member of this group");
       }
+    } else {
+      // For individual expenses, verify connections with all participants
+      for (const split of args.splits) {
+        if (split.userId === user._id) continue;
+
+        // Check if there's an accepted connection
+        const connection = await ctx.db
+          .query("connections")
+          .filter((q) =>
+            q.and(
+              q.eq(q.field("status"), "accepted"),
+              q.or(
+                q.and(
+                  q.eq(q.field("requesterId"), user._id),
+                  q.eq(q.field("receiverId"), split.userId)
+                ),
+                q.and(
+                  q.eq(q.field("requesterId"), split.userId),
+                  q.eq(q.field("receiverId"), user._id)
+                )
+              )
+            )
+          )
+          .first();
+
+        if (!connection) {
+          const participant = await ctx.db.get(split.userId);
+          throw new Error(`You must be friends with ${participant?.name || "all participants"} to create an individual expense.`);
+        }
+      }
     }
 
     // Verify that splits add up to the total amount (with small tolerance for floating point issues)

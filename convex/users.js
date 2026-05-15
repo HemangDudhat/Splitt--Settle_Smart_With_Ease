@@ -169,46 +169,96 @@ export const searchUsers = query({
     const currentUser = await ctx.runQuery(internal.users.getCurrentUser);
     const searchTerm = args.query.trim().toLowerCase();
     
-    // Always fetch recent contacts first
-    const contactIds = await getRecentContactIds(ctx, currentUser._id);
-    const contacts = await Promise.all(
-      contactIds.map(id => ctx.db.get(id))
+    // Fetch accepted friends instead of all recent contacts
+    const initiated = await ctx.db
+      .query("connections")
+      .withIndex("by_requester", (q) => q.eq("requesterId", currentUser._id))
+      .filter((q) => q.eq(q.field("status"), "accepted"))
+      .collect();
+
+    const received = await ctx.db
+      .query("connections")
+      .withIndex("by_receiver", (q) => q.eq("receiverId", currentUser._id))
+      .filter((q) => q.eq(q.field("status"), "accepted"))
+      .collect();
+
+    const friendIds = [
+      ...initiated.map((c) => c.receiverId),
+      ...received.map((c) => c.requesterId),
+    ];
+
+    const friends = await Promise.all(
+      friendIds.map(id => ctx.db.get(id))
     );
-    const validContacts = contacts.filter(Boolean);
+    const validContacts = friends.filter(Boolean);
+
+    // Helper to get connection status for a user
+    const getConnectionStatus = async (otherUserId) => {
+      const outgoing = await ctx.db
+        .query("connections")
+        .withIndex("by_users", (q) => q.eq("requesterId", currentUser._id).eq("receiverId", otherUserId))
+        .first();
+      
+      if (outgoing) {
+        return outgoing.status === "pending" ? "pending_sent" : outgoing.status;
+      }
+
+      const incoming = await ctx.db
+        .query("connections")
+        .withIndex("by_users", (q) => q.eq("requesterId", otherUserId).eq("receiverId", currentUser._id))
+        .first();
+      
+      if (incoming) {
+        return incoming.status === "pending" ? "pending_received" : incoming.status;
+      }
+
+      return "none";
+    };
 
     // If query is empty, just return recent contacts (up to 10)
     if (!searchTerm) {
-      return validContacts.slice(0, 10).map((user) => ({
-        id: user._id,
-        name: user.name,
-        username: user.username,
-        email: user.email,
-        imageUrl: user.imageUrl,
-        isContact: true,
-      }));
+      const results = await Promise.all(
+        validContacts.slice(0, 10).map(async (user) => {
+          const status = await getConnectionStatus(user._id);
+          return {
+            id: user._id,
+            name: user.name,
+            username: user.username,
+            email: user.email,
+            imageUrl: user.imageUrl,
+            isContact: status === "accepted",
+            connectionStatus: status,
+          };
+        })
+      );
+      return results;
     }
 
     // Search contacts by name or username
-    const matchedContacts = validContacts.filter(
-      (u) => 
-        u.name.toLowerCase().includes(searchTerm) || 
-        (u.username && u.username.toLowerCase().includes(searchTerm)) ||
-        u.email.toLowerCase().includes(searchTerm)
-    ).map(user => ({
-      id: user._id,
-      name: user.name,
-      username: user.username,
-      email: user.email,
-      imageUrl: user.imageUrl,
-      isContact: true,
-    }));
+    const matchedContacts = await Promise.all(
+      validContacts.filter(
+        (u) => 
+          u.name.toLowerCase().includes(searchTerm) || 
+          (u.username && u.username.toLowerCase().includes(searchTerm)) ||
+          u.email.toLowerCase().includes(searchTerm)
+      ).map(async (user) => {
+        const status = await getConnectionStatus(user._id);
+        return {
+          id: user._id,
+          name: user.name,
+          username: user.username,
+          email: user.email,
+          imageUrl: user.imageUrl,
+          isContact: status === "accepted",
+          connectionStatus: status,
+        };
+      })
+    );
 
     let globalUsers = [];
     
     // If they typed at least 3 chars, we also do a global search by username
-    // To prevent scraping, we ONLY return up to 5 global username matches
     if (searchTerm.length >= 3) {
-      // Remove @ if they typed it
       const cleanSearch = searchTerm.startsWith('@') ? searchTerm.substring(1) : searchTerm;
       
       const usernameResults = await ctx.db
@@ -219,35 +269,17 @@ export const searchUsers = query({
       globalUsers = await Promise.all(
         usernameResults
           .filter(u => u._id !== currentUser._id)
-          // filter out users already in contacts
           .filter(u => !matchedContacts.some(c => c.id === u._id))
           .map(async (user) => {
-            let connectionStatus = "none";
-            const outgoing = await ctx.db
-              .query("connections")
-              .withIndex("by_users", (q) => q.eq("requesterId", currentUser._id).eq("receiverId", user._id))
-              .first();
-            
-            if (outgoing) {
-              connectionStatus = outgoing.status === "pending" ? "pending_sent" : outgoing.status;
-            } else {
-              const incoming = await ctx.db
-                .query("connections")
-                .withIndex("by_users", (q) => q.eq("requesterId", user._id).eq("receiverId", currentUser._id))
-                .first();
-              if (incoming) {
-                connectionStatus = incoming.status === "pending" ? "pending_received" : incoming.status;
-              }
-            }
-
+            const status = await getConnectionStatus(user._id);
             return {
               id: user._id,
               name: user.name,
               username: user.username,
               email: user.email,
               imageUrl: user.imageUrl,
-              isContact: false,
-              connectionStatus,
+              isContact: status === "accepted",
+              connectionStatus: status,
             };
           })
       );
@@ -255,6 +287,6 @@ export const searchUsers = query({
 
     // Combine results, contacts first
     const allResults = [...matchedContacts, ...globalUsers];
-    return allResults.slice(0, 10); // Return max 10 total results
+    return allResults.slice(0, 10);
   },
 });

@@ -65,11 +65,29 @@ export function CreateGroupModal({ isOpen, onClose, onSuccess }) {
     },
   });
 
-  const addMember = (user) => {
+  const { mutate: sendRequest } = useConvexMutation(api.connections.sendRequest);
+
+  const addMember = async (user) => {
+    // Enforce connections
+    if (!user.isContact && user.connectionStatus !== "accepted") {
+      if (user.connectionStatus === "pending_sent") {
+        toast.info("Connection request already sent.");
+        return;
+      }
+      try {
+        await sendRequest({ receiverId: user.id });
+        toast.success("Connection request sent! You can add them once they accept.");
+        setCommandOpen(false);
+        setSearchQuery("");
+      } catch (e) {}
+      return;
+    }
+
     if (!selectedMembers.some((m) => m.id === user.id)) {
       setSelectedMembers([...selectedMembers, user]);
     }
     setCommandOpen(false);
+    setSearchQuery("");
   };
 
   const removeMember = (userId) => {
@@ -215,25 +233,37 @@ export function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                         )}
                       </CommandEmpty>
                       <CommandGroup heading="Users">
-                        {searchResults?.map((user) => (
+                        {searchResults
+                          ?.filter((user) => !selectedMembers.some((m) => m.id === user.id))
+                          .map((user) => (
                           <CommandItem
                             key={user.id}
                             value={user.name + user.email}
                             onSelect={() => addMember(user)}
                           >
-                            <div className="flex items-center gap-2">
-                              <Avatar className="h-6 w-6">
-                                <AvatarImage src={user.imageUrl} />
-                                <AvatarFallback>
-                                  {user.name?.charAt(0) || "?"}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex flex-col">
-                                <span className="text-sm">{user.name}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  {user.email}
-                                </span>
+                            <div className="flex items-center gap-2 justify-between w-full">
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-6 w-6">
+                                  <AvatarImage src={user.imageUrl} />
+                                  <AvatarFallback>
+                                    {user.name?.charAt(0) || "?"}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex flex-col">
+                                  <span className="text-sm">{user.name}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {user.email}
+                                  </span>
+                                </div>
                               </div>
+                              {!user.isContact && (
+                                <Badge 
+                                  variant={user.connectionStatus === "pending_sent" ? "secondary" : "outline"} 
+                                  className="text-[10px] px-1.5 py-0"
+                                >
+                                  {user.connectionStatus === "pending_sent" ? "Pending" : "Send Request"}
+                                </Badge>
+                              )}
                             </div>
                           </CommandItem>
                         ))}

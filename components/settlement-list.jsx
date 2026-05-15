@@ -1,13 +1,18 @@
-"use client";
-
 import { useState } from "react";
 import { useConvexQuery } from "@/hooks/useConvexQuery";
 import { api } from "@/convex/_generated/api";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeftRight } from "lucide-react";
+import { ArrowLeftRight, ArrowUpDown, Calendar, DollarSign, User } from "lucide-react";
 import Link from "next/link";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export function SettlementList({
   settlements,
@@ -15,7 +20,9 @@ export function SettlementList({
   userLookupMap,
 }) {
   const { data: currentUser } = useConvexQuery(api.users.getCurrentUser);
-  console.log("settlements", settlements);
+  
+  const [sortBy, setSortBy] = useState("date");
+  const [sortOrder, setSortOrder] = useState("desc");
 
   if (!settlements || !settlements.length) {
     return (
@@ -40,9 +47,71 @@ export function SettlementList({
     };
   };
 
+  // Sort logic
+  const sortedSettlements = [...(settlements || [])].sort((a, b) => {
+    let comparison = 0;
+    if (sortBy === "date") {
+      comparison = a.date - b.date;
+    } else if (sortBy === "amount") {
+      comparison = a.amount - b.amount;
+    } else if (sortBy === "name") {
+      const nameA = a.paidByUserId === currentUser?._id ? "You" : (userLookupMap[a.paidByUserId]?.name || "");
+      const nameB = b.paidByUserId === currentUser?._id ? "You" : (userLookupMap[b.paidByUserId]?.name || "");
+      comparison = nameA.localeCompare(nameB);
+    }
+
+    return sortOrder === "asc" ? comparison : -comparison;
+  });
+
   return (
     <div className="flex flex-col gap-4">
-      {settlements.map((settlement) => {
+      {settlements && settlements.length > 0 && (
+        <div className="flex flex-wrap gap-3 items-center justify-between bg-muted/20 p-3 rounded-lg border">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <ArrowUpDown className="h-4 w-4" />
+            Sort by
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-[140px] h-9 bg-background">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-3.5 w-3.5" />
+                    Date
+                  </div>
+                </SelectItem>
+                <SelectItem value="amount">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-3.5 w-3.5" />
+                    Price
+                  </div>
+                </SelectItem>
+                <SelectItem value="name">
+                  <div className="flex items-center gap-2">
+                    <User className="h-3.5 w-3.5" />
+                    Payer
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={sortOrder} onValueChange={setSortOrder}>
+              <SelectTrigger className="w-[130px] h-9 bg-background">
+                <SelectValue placeholder="Order" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="asc">Ascending</SelectItem>
+                <SelectItem value="desc">Descending</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
+
+      {sortedSettlements.map((settlement) => {
         const payer = getUserDetails(settlement.paidByUserId);
         const receiver = getUserDetails(settlement.receivedByUserId);
         const isCurrentUserPayer = settlement.paidByUserId === currentUser?._id;

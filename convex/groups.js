@@ -159,6 +159,46 @@ export const getGroupExpenses = query({
       });
     });
 
+    /* ----------  Greedy Debt Simplification ---------- */
+    // Build a clean net-balance map from totals
+    const netBalances = { ...totals };
+
+    const simplifiedDebts = [];
+    const creditors = []; // people owed money (positive balance)
+    const debtors = [];   // people who owe money (negative balance)
+
+    for (const [id, bal] of Object.entries(netBalances)) {
+      if (bal > 0.005) creditors.push({ id, amount: bal });
+      else if (bal < -0.005) debtors.push({ id, amount: -bal }); // store as positive
+    }
+
+    // Sort descending so we match largest first
+    creditors.sort((a, b) => b.amount - a.amount);
+    debtors.sort((a, b) => b.amount - a.amount);
+
+    let ci = 0;
+    let di = 0;
+
+    while (ci < creditors.length && di < debtors.length) {
+      const creditor = creditors[ci];
+      const debtor = debtors[di];
+      const settleAmount = Math.min(creditor.amount, debtor.amount);
+
+      if (settleAmount > 0.005) {
+        simplifiedDebts.push({
+          from: debtor.id,
+          to: creditor.id,
+          amount: Math.round(settleAmount * 100) / 100,
+        });
+      }
+
+      creditor.amount -= settleAmount;
+      debtor.amount -= settleAmount;
+
+      if (creditor.amount < 0.005) ci++;
+      if (debtor.amount < 0.005) di++;
+    }
+
     /* ----------  shape the response ---------- */
     const balances = memberDetails.map((m) => ({
       ...m,
@@ -186,6 +226,7 @@ export const getGroupExpenses = query({
       expenses,
       settlements,
       balances,
+      simplifiedDebts,
       userLookupMap,
     };
   },

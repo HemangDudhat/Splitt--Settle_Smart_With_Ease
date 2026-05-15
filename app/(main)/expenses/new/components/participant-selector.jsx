@@ -141,13 +141,15 @@ export function ParticipantSelector({ participants, onParticipantsChange }) {
                     ) : (
                       <p className="py-3 px-4 text-sm text-center text-muted-foreground">
                         {searchQuery.length < 3 
-                          ? "No contacts found. Type @username to search globally." 
+                          ? "No friends found. Type @username to search globally." 
                           : "No users found."}
                       </p>
                     )}
                   </CommandEmpty>
-                  <CommandGroup heading={searchQuery ? "Search Results" : "Recent Contacts"}>
-                    {searchResults?.map((user) => (
+                  <CommandGroup heading={searchQuery ? "Search Results" : "My Friends"}>
+                    {searchResults
+                      ?.filter((user) => !participants.some((p) => p.id === user.id))
+                      .map((user) => (
                       <CommandItem
                         key={user.id}
                         value={(user.name || "") + " " + (user.username || "") + " " + (user.email || "")}

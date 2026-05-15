@@ -11,42 +11,27 @@ export const getAllContacts = query({
     // Use the centralized getCurrentUser instead of duplicating auth logic
     const currentUser = await ctx.runQuery(internal.users.getCurrentUser);
 
-    /* ── personal expenses where YOU are the payer ─────────────────────── */
-    const expensesYouPaid = await ctx.db
-      .query("expenses")
-      .withIndex("by_user_and_group", (q) =>
-        q.eq("paidByUserId", currentUser._id).eq("groupId", undefined)
-      )
+    /* ── fetch accepted friends ────────────────────────────────────────── */
+    const initiated = await ctx.db
+      .query("connections")
+      .withIndex("by_requester", (q) => q.eq("requesterId", currentUser._id))
+      .filter((q) => q.eq(q.field("status"), "accepted"))
       .collect();
 
-    /* ── personal expenses where YOU are **not** the payer ─────────────── */
-    const expensesNotPaidByYou = (
-      await ctx.db
-        .query("expenses")
-        .withIndex("by_group", (q) => q.eq("groupId", undefined)) // only 1‑to‑1
-        .collect()
-    ).filter(
-      (e) =>
-        e.paidByUserId !== currentUser._id &&
-        e.splits.some((s) => s.userId === currentUser._id)
-    );
+    const received = await ctx.db
+      .query("connections")
+      .withIndex("by_receiver", (q) => q.eq("receiverId", currentUser._id))
+      .filter((q) => q.eq(q.field("status"), "accepted"))
+      .collect();
 
-    const personalExpenses = [...expensesYouPaid, ...expensesNotPaidByYou];
-
-    /* ── extract unique counterpart IDs ─────────────────────────────────── */
-    const contactIds = new Set();
-    personalExpenses.forEach((exp) => {
-      if (exp.paidByUserId !== currentUser._id)
-        contactIds.add(exp.paidByUserId);
-
-      exp.splits.forEach((s) => {
-        if (s.userId !== currentUser._id) contactIds.add(s.userId);
-      });
-    });
+    const friendIds = new Set([
+      ...initiated.map((c) => c.receiverId),
+      ...received.map((c) => c.requesterId),
+    ]);
 
     /* ── fetch user docs ───────────────────────────────────────────────── */
     const contactUsers = await Promise.all(
-      [...contactIds].map(async (id) => {
+      [...friendIds].map(async (id) => {
         const u = await ctx.db.get(id);
         return u
           ? {
@@ -97,10 +82,36 @@ export const createGroup = mutation({
     const uniqueMembers = new Set(args.members);
     uniqueMembers.add(currentUser._id); // ensure creator
 
-    // Validate that all member users exist
+    // Validate that all member users exist and are friends with the creator
     for (const id of uniqueMembers) {
-      if (!(await ctx.db.get(id)))
-        throw new Error(`User with ID ${id} not found`);
+      if (id === currentUser._id) continue;
+      
+      const userDoc = await ctx.db.get(id);
+      if (!userDoc) throw new Error(`User with ID ${id} not found`);
+
+      // Check friendship
+      const connection = await ctx.db
+        .query("connections")
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("status"), "accepted"),
+            q.or(
+              q.and(
+                q.eq(q.field("requesterId"), currentUser._id),
+                q.eq(q.field("receiverId"), id)
+              ),
+              q.and(
+                q.eq(q.field("requesterId"), id),
+                q.eq(q.field("receiverId"), currentUser._id)
+              )
+            )
+          )
+        )
+        .first();
+
+      if (!connection) {
+        throw new Error(`You must be friends with ${userDoc.name || "all members"} to add them to a group.`);
+      }
     }
 
     return await ctx.db.insert("groups", {

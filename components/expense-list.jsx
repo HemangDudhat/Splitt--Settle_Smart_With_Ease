@@ -1,5 +1,4 @@
-"use client";
-
+import { useState } from "react";
 import { useConvexQuery, useConvexMutation } from "@/hooks/useConvexQuery";
 import { api } from "@/convex/_generated/api";
 import { format } from "date-fns";
@@ -8,9 +7,16 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { getCategoryById } from "@/lib/expense-categories";
 import { getCategoryIcon } from "@/lib/expense-categories";
-import { Trash2 } from "lucide-react";
+import { Trash2, ArrowUpDown, Calendar, DollarSign, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export function ExpenseList({
   expenses,
@@ -21,6 +27,9 @@ export function ExpenseList({
 }) {
   const { data: currentUser } = useConvexQuery(api.users.getCurrentUser);
   const deleteExpense = useConvexMutation(api.expenses.deleteExpense);
+
+  const [sortBy, setSortBy] = useState("date");
+  const [sortOrder, setSortOrder] = useState("desc");
 
   if (!expenses || !expenses.length) {
     return (
@@ -72,9 +81,69 @@ export function ExpenseList({
     }
   };
 
+  // Sort logic
+  const sortedExpenses = [...(expenses || [])].sort((a, b) => {
+    let comparison = 0;
+    if (sortBy === "date") {
+      comparison = a.date - b.date;
+    } else if (sortBy === "amount") {
+      comparison = a.amount - b.amount;
+    } else if (sortBy === "description") {
+      comparison = a.description.localeCompare(b.description);
+    }
+
+    return sortOrder === "asc" ? comparison : -comparison;
+  });
+
   return (
     <div className="flex flex-col gap-4">
-      {expenses.map((expense) => {
+      {expenses && expenses.length > 0 && (
+        <div className="flex flex-wrap gap-3 items-center justify-between bg-muted/20 p-3 rounded-lg border">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <ArrowUpDown className="h-4 w-4" />
+            Sort by
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-[140px] h-9 bg-background">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-3.5 w-3.5" />
+                    Date
+                  </div>
+                </SelectItem>
+                <SelectItem value="amount">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-3.5 w-3.5" />
+                    Price
+                  </div>
+                </SelectItem>
+                <SelectItem value="description">
+                  <div className="flex items-center gap-2">
+                    <Type className="h-3.5 w-3.5" />
+                    Name
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={sortOrder} onValueChange={setSortOrder}>
+              <SelectTrigger className="w-[130px] h-9 bg-background">
+                <SelectValue placeholder="Order" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="asc">Ascending</SelectItem>
+                <SelectItem value="desc">Descending</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
+
+      {sortedExpenses.map((expense) => {
         const payer = getUserDetails(expense.paidByUserId, expense);
         const isCurrentUserPayer = expense.paidByUserId === currentUser?._id;
         const category = getCategoryById(expense.category);
