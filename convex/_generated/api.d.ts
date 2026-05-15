@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as connections from "../connections.js";
 import type * as contacts from "../contacts.js";
 import type * as dashboard from "../dashboard.js";
 import type * as email from "../email.js";
@@ -25,6 +26,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  connections: typeof connections;
   contacts: typeof contacts;
   dashboard: typeof dashboard;
   email: typeof email;

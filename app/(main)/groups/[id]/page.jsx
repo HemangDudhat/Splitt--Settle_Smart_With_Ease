@@ -4,12 +4,13 @@ import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/convex/_generated/api";
-import { useConvexQuery } from "@/hooks/useConvexQuery";
+import { useConvexQuery, useConvexMutation } from "@/hooks/useConvexQuery";
 import { BarLoader, PropagateLoader } from "react-spinners";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlusCircle, ArrowLeftRight, ArrowLeft, Users } from "lucide-react";
+import { PlusCircle, ArrowLeftRight, ArrowLeft, Users, Trash2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { ExpenseList } from "@/components/expense-list";
 import { SettlementList } from "@/components/settlement-list";
 import { GroupBalances } from "@/components/group-balances";
@@ -20,9 +21,12 @@ export default function GroupExpensesPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("expenses");
 
-  const { data, isLoading } = useConvexQuery(api.groups.getGroupExpenses, {
+   const { data, isLoading } = useConvexQuery(api.groups.getGroupExpenses, {
     groupId: params.id,
   });
+
+  const { data: currentUser } = useConvexQuery(api.users.getCurrentUser);
+  const { mutate: deleteGroup, isLoading: isDeleting } = useConvexMutation(api.groups.deleteGroup);
 
   if (isLoading) {
     return (
@@ -32,12 +36,32 @@ export default function GroupExpensesPage() {
     );
   }
 
+  if (!data) {
+    return null;
+  }
+
   const group = data?.group;
   const members = data?.members || [];
   const expenses = data?.expenses || [];
   const settlements = data?.settlements || [];
   const balances = data?.balances || [];
   const userLookupMap = data?.userLookupMap || {};
+
+  const isAdmin = members.find(m => m.id === currentUser?._id)?.role === "admin";
+
+  const handleDelete = async () => {
+    if (!window.confirm("Are you sure you want to delete this group? All expenses and settlements will be permanently removed.")) {
+      return;
+    }
+
+    try {
+      await deleteGroup({ groupId: params.id });
+      toast.success("Group deleted successfully");
+      router.replace("/dashboard");
+    } catch (e) {
+      toast.error(e.message || "Failed to delete group");
+    }
+  };
 
   return (
     <div className="container mx-auto py-6 max-w-4xl">
@@ -66,7 +90,19 @@ export default function GroupExpensesPage() {
             </div>
           </div>
 
-          <div className="flex gap-2">
+           <div className="flex gap-2">
+            {isAdmin && (
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                title="Delete Group"
+                className="hover:text-red-500 hover:border-red-500"
+              >
+                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              </Button>
+            )}
             <Button asChild variant="outline">
               <Link href={`/settlements/group/${params.id}`}>
                 <ArrowLeftRight className="mr-2 h-4 w-4" />

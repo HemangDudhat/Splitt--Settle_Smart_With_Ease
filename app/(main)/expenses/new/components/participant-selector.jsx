@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
-import { useConvexQuery } from "@/hooks/useConvexQuery";
+import { useConvexQuery, useConvexMutation } from "@/hooks/useConvexQuery";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { X, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import {
   Command,
   CommandEmpty,
@@ -26,15 +27,38 @@ export function ParticipantSelector({ participants, onParticipantsChange }) {
   const { data: currentUser } = useConvexQuery(api.users.getCurrentUser);
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+
+  const { mutate: sendRequest } = useConvexMutation(api.connections.sendRequest);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Search for users
   const { data: searchResults, isLoading } = useConvexQuery(
     api.users.searchUsers,
-    { query: searchQuery }
+    { query: debouncedQuery }
   );
 
   // Add a participant
-  const addParticipant = (user) => {
+  const addParticipant = async (user) => {
+    // Enforce connections
+    if (!user.isContact && user.connectionStatus !== "accepted") {
+      if (user.connectionStatus === "pending_sent") {
+        toast.info("Connection request already sent.");
+        return;
+      }
+      try {
+        await sendRequest({ receiverId: user.id });
+        toast.success("Connection request sent! You can add them once they accept.");
+        setOpen(false);
+        setSearchQuery("");
+      } catch (e) {}
+      return;
+    }
+
     // Check if already added
     if (participants.some((p) => p.id === user.id)) {
       return;
@@ -104,46 +128,54 @@ export function ParticipantSelector({ participants, onParticipantsChange }) {
             <PopoverContent className="p-0" align="start">
               <Command>
                 <CommandInput
-                  placeholder="Search by name or email..."
+                  placeholder="Search contacts or @username..."
                   value={searchQuery}
                   onValueChange={setSearchQuery}
                 />
                 <CommandList>
                   <CommandEmpty>
-                    {searchQuery.length < 2 ? (
-                      <p className="py-3 px-4 text-sm text-center text-muted-foreground">
-                        Type at least 2 characters to search
-                      </p>
-                    ) : isLoading ? (
+                    {isLoading ? (
                       <p className="py-3 px-4 text-sm text-center text-muted-foreground">
                         Searching...
                       </p>
                     ) : (
                       <p className="py-3 px-4 text-sm text-center text-muted-foreground">
-                        No users found
+                        {searchQuery.length < 3 
+                          ? "No contacts found. Type @username to search globally." 
+                          : "No users found."}
                       </p>
                     )}
                   </CommandEmpty>
-                  <CommandGroup heading="Users">
+                  <CommandGroup heading={searchQuery ? "Search Results" : "Recent Contacts"}>
                     {searchResults?.map((user) => (
                       <CommandItem
                         key={user.id}
-                        value={user.name + user.email}
+                        value={(user.name || "") + " " + (user.username || "") + " " + (user.email || "")}
                         onSelect={() => addParticipant(user)}
                       >
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-6 w-6">
-                            <AvatarImage src={user.imageUrl} />
-                            <AvatarFallback>
-                              {user.name?.charAt(0) || "?"}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex flex-col">
-                            <span className="text-sm">{user.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {user.email}
-                            </span>
+                        <div className="flex items-center gap-2 justify-between w-full">
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-6 w-6">
+                              <AvatarImage src={user.imageUrl} />
+                              <AvatarFallback>
+                                {user.name?.charAt(0) || "?"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex flex-col">
+                              <span className="text-sm">{user.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {user.username ? `@${user.username}` : user.email}
+                              </span>
+                            </div>
                           </div>
+                          {!user.isContact && (
+                            <Badge 
+                              variant={user.connectionStatus === "pending_sent" ? "secondary" : "outline"} 
+                              className="text-[10px] px-1.5 py-0"
+                            >
+                              {user.connectionStatus === "pending_sent" ? "Pending" : "Send Request"}
+                            </Badge>
+                          )}
                         </div>
                       </CommandItem>
                     ))}

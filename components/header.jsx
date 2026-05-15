@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Button } from "./ui/button";
-import { LayoutDashboard } from "lucide-react";
+import { LayoutDashboard, User, Users } from "lucide-react";
 import Link from "next/link";
 import { SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
 import { useStoreUser } from "@/hooks/useStoreUser";
@@ -47,6 +47,19 @@ export default function Header() {
 
         <div className="flex items-center gap-4">
           <Authenticated>
+            <Link href="/connections">
+              <Button
+                variant="outline"
+                className="hidden border border-transparent md:inline-flex items-center gap-2 hover:text-blue-900 hover:bg-blue-50 hover:border-blue-900 transition"
+              >
+                <Users className="h-4 w-4" />
+                Connections
+              </Button>
+              <Button variant="ghost" className="md:hidden w-10 h-10 p-0">
+                <Users className="h-4 w-4" />
+              </Button>
+            </Link>
+
             <Link href="/dashboard">
               <Button
                 variant="outline"
@@ -69,7 +82,15 @@ export default function Header() {
                 },
               }}
               afterSignOutUrl="/"
-            />
+            >
+              <UserButton.MenuItems>
+                <UserButton.Link
+                  label="Profile Settings"
+                  labelIcon={<User className="h-4 w-4" />}
+                  href="/profile"
+                />
+              </UserButton.MenuItems>
+            </UserButton>
           </Authenticated>
 
           <Unauthenticated>

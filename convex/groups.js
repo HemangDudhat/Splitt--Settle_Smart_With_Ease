@@ -1,4 +1,4 @@
-import { query } from "./_generated/server";
+import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 
@@ -84,10 +84,9 @@ export const getGroupExpenses = query({
     const currentUser = await ctx.runQuery(internal.users.getCurrentUser);
 
     const group = await ctx.db.get(groupId);
-    if (!group) throw new Error("Group not found");
-
-    if (!group.members.some((m) => m.userId === currentUser._id))
-      throw new Error("You are not a member of this group");
+    if (!group || !group.members.some((m) => m.userId === currentUser._id)) {
+      return null;
+    }
 
     const expenses = await ctx.db
       .query("expenses")
@@ -189,5 +188,48 @@ export const getGroupExpenses = query({
       balances,
       userLookupMap,
     };
+  },
+});
+
+export const deleteGroup = mutation({
+  args: { groupId: v.id("groups") },
+  handler: async (ctx, args) => {
+    const currentUser = await ctx.runQuery(internal.users.getCurrentUser);
+    
+    const group = await ctx.db.get(args.groupId);
+    if (!group) {
+      throw new Error("Group not found");
+    }
+
+    // Find current user's membership
+    const membership = group.members.find(m => m.userId === currentUser._id);
+    if (!membership || membership.role !== "admin") {
+      throw new Error("Unauthorized: Only admins can delete the group");
+    }
+
+    // Delete all expenses associated with the group
+    const expenses = await ctx.db
+      .query("expenses")
+      .withIndex("by_group", (q) => q.eq("groupId", args.groupId))
+      .collect();
+    
+    for (const expense of expenses) {
+      await ctx.db.delete(expense._id);
+    }
+
+    // Delete all settlements associated with the group
+    const settlements = await ctx.db
+      .query("settlements")
+      .filter((q) => q.eq(q.field("groupId"), args.groupId))
+      .collect();
+
+    for (const settlement of settlements) {
+      await ctx.db.delete(settlement._id);
+    }
+
+    // Finally, delete the group itself
+    await ctx.db.delete(args.groupId);
+
+    return { success: true };
   },
 });

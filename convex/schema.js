@@ -4,12 +4,15 @@ import { v } from "convex/values";
 export default defineSchema({
   users: defineTable({
     name: v.string(),
+    username: v.optional(v.string()), // Made optional for backwards compatibility
     email: v.string(),
     tokenIdentifier: v.string(),
     imageUrl: v.optional(v.string()),
   })
     .index("by_token", ["tokenIdentifier"])
     .index("by_email", ["email"])
+    .index("by_username", ["username"])
+    .searchIndex("search_username", { searchField: "username" })
     .searchIndex("search_name", { searchField: "name" })
     .searchIndex("search_email", { searchField: "email" }),
 
@@ -64,4 +67,15 @@ export default defineSchema({
       })
     ),
   }),
+
+  // Connections / Friend Requests
+  connections: defineTable({
+    requesterId: v.id("users"),
+    receiverId: v.id("users"),
+    status: v.string(), // "pending", "accepted"
+    createdAt: v.number(),
+  })
+    .index("by_requester", ["requesterId"])
+    .index("by_receiver", ["receiverId"])
+    .index("by_users", ["requesterId", "receiverId"]),
 });
