@@ -13,8 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export function GroupSelector({ onChange }) {
-  const [selectedGroupId, setSelectedGroupId] = useState("");
+export function GroupSelector({ onChange, defaultValue }) {
+  const [selectedGroupId, setSelectedGroupId] = useState(defaultValue || "");
 
   // Single query to get all data we need
   const { data, isLoading } = useConvexQuery(

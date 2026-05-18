@@ -1,12 +1,24 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
 import { ExpenseForm } from "./components/expense-form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default function NewExpensePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const queryTab = searchParams.get("tab");
+  const queryGroupId = searchParams.get("groupId");
+
+  const [activeTab, setActiveTab] = useState("individual");
+
+  useEffect(() => {
+    if (queryTab === "group" || queryTab === "Group Expense") {
+      setActiveTab("group");
+    }
+  }, [queryTab]);
 
   return (
     <div className="container max-w-3xl mx-auto py-6">
@@ -19,7 +31,7 @@ export default function NewExpensePage() {
 
       <Card>
         <CardContent>
-          <Tabs className="pb-3" defaultValue="individual">
+          <Tabs className="pb-3" value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="individual">Individual Expense</TabsTrigger>
               <TabsTrigger value="group">Group Expense</TabsTrigger>
@@ -33,6 +45,7 @@ export default function NewExpensePage() {
             <TabsContent value="group" className="mt-0">
               <ExpenseForm
                 type="group"
+                defaultGroupId={queryGroupId}
                 onSuccess={(id) => router.push(`/groups/${id}`)}
               />
             </TabsContent>

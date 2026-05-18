@@ -9,8 +9,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export function CategorySelector({ categories, onChange }) {
-  const [selectedCategory, setSelectedCategory] = useState("");
+export function CategorySelector({ categories, onChange, defaultValue, scanKey }) {
+  const [selectedCategory, setSelectedCategory] = useState(defaultValue || "");
 
   // Handle when a category is selected
   const handleCategoryChange = (categoryId) => {
@@ -27,8 +27,8 @@ export function CategorySelector({ categories, onChange }) {
     return <div>No categories available</div>;
   }
 
-  // Set default value if not already set
-  if (!selectedCategory && categories.length > 0) {
+  // Set default value if not already set (and no defaultValue was passed)
+  if (!selectedCategory && categories.length > 0 && !defaultValue) {
     // Find a default category or use the first one
     const defaultCategory =
       categories.find((cat) => cat.isDefault) || categories[0];

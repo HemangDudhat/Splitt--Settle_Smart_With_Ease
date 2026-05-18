@@ -111,7 +111,7 @@ export default function GroupExpensesPage() {
               </Link>
             </Button>
             <Button asChild>
-              <Link href={`/expenses/new`}>
+              <Link href={`/expenses/new?tab=Group Expense&groupId=${params.id}`}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Add expense
               </Link>
@@ -165,7 +165,7 @@ export default function GroupExpensesPage() {
                           variant="default"
                         >
                           <Link
-                            href={`/settlements/group/${params.id}?to=${debt.to}&amount=${debt.amount}`}
+                            href={`/settlements/group/${params.id}?to=${debt.to}&amount=${debt.amount}&tab=simplified`}
                           >
                             Settle
                           </Link>

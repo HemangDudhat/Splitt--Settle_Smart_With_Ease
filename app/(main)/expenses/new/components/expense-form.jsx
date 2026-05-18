@@ -25,6 +25,7 @@ import {
 import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
 import { getAllCategories } from "@/lib/expense-categories";
+import { ReceiptScanner } from "./receipt-scanner";
 
 // Form schema validation
 const expenseSchema = z.object({
@@ -42,12 +43,14 @@ const expenseSchema = z.object({
   groupId: z.string().optional(),
 });
 
-export function ExpenseForm({ type = "individual", onSuccess }) {
+export function ExpenseForm({ type = "individual", defaultGroupId, onSuccess }) {
   const [participants, setParticipants] = useState([]);
   const [groupMembers, setGroupMembers] = useState([]); // All members in selected group
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [splits, setSplits] = useState([]);
+  const [scanKey, setScanKey] = useState(0); // bump to re-mount CategorySelector after scan
+  const [scannedCategory, setScannedCategory] = useState(null);
 
   // Mutations and queries
   const { data: currentUser } = useConvexQuery(api.users.getCurrentUser);
@@ -94,6 +97,24 @@ export function ExpenseForm({ type = "individual", onSuccess }) {
       ]);
     }
   }, [currentUser, participants]);
+
+  // Handle auto-fill from receipt scan
+  const handleScanComplete = (data) => {
+    if (data.storeName) setValue("description", data.storeName);
+    if (data.totalAmount !== null) setValue("amount", data.totalAmount.toString());
+    if (data.date) {
+      const parsed = new Date(data.date);
+      if (!isNaN(parsed)) {
+        setSelectedDate(parsed);
+        setValue("date", parsed);
+      }
+    }
+    if (data.suggestedCategory) {
+      setScannedCategory(data.suggestedCategory);
+      setValue("category", data.suggestedCategory);
+      setScanKey((k) => k + 1); // re-mount CategorySelector with new defaultValue
+    }
+  };
 
   // Handle form submission
   const onSubmit = async (data) => {
@@ -154,6 +175,9 @@ export function ExpenseForm({ type = "individual", onSuccess }) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {/* ── Smart Receipt Scanner ─────────────────────────────────── */}
+      <ReceiptScanner onScanComplete={handleScanComplete} />
+
       <div className="space-y-4">
         {/* Description and amount */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -193,7 +217,9 @@ export function ExpenseForm({ type = "individual", onSuccess }) {
             <Label htmlFor="category">Category</Label>
 
             <CategorySelector
+              key={scanKey}
               categories={categories || []}
+              defaultValue={scannedCategory}
               onChange={(categoryId) => {
                 if (categoryId) {
                   setValue("category", categoryId);
@@ -241,6 +267,7 @@ export function ExpenseForm({ type = "individual", onSuccess }) {
           <div className="space-y-2">
             <Label>Group</Label>
             <GroupSelector
+              defaultValue={defaultGroupId}
               onChange={(group) => {
                 if (!selectedGroup || selectedGroup.id !== group.id) {
                   setSelectedGroup(group);

@@ -24,11 +24,19 @@ export const createSettlement = mutation({
     if (args.paidByUserId === args.receivedByUserId) {
       throw new Error("Payer and receiver cannot be the same user");
     }
-    if (
-      caller._id !== args.paidByUserId &&
-      caller._id !== args.receivedByUserId
-    ) {
-      throw new Error("You must be either the payer or the receiver");
+    const isParticipant = caller._id === args.paidByUserId || caller._id === args.receivedByUserId;
+    
+    if (!isParticipant) {
+      // If not a participant, must be a group settlement and caller must be a member
+      if (!args.groupId) {
+        throw new Error("You must be either the payer or the receiver for individual settlements");
+      }
+      const group = await ctx.db.get(args.groupId);
+      if (!group) throw new Error("Group not found");
+      const isMember = group.members.some((m) => m.userId === caller._id);
+      if (!isMember) {
+        throw new Error("You must be a member of the group to record a settlement");
+      }
     }
 
     /* ── group check (if provided) ───────────────────────────────────────── */
@@ -173,67 +181,123 @@ export const getSettlementData = query({
         .withIndex("by_group", (q) => q.eq("groupId", group._id))
         .collect();
 
-      // ---------- initialise per‑member tallies
-      const balances = {};
-      group.members.forEach((m) => {
-        if (m.userId !== me._id) balances[m.userId] = { owed: 0, owing: 0 };
+      // ----------  member map ----------
+      const memberDetails = await Promise.all(
+        group.members.map(async (m) => {
+          const u = await ctx.db.get(m.userId);
+          return { id: u._id, name: u.name, imageUrl: u.imageUrl };
+        })
+      );
+      const ids = memberDetails.map((m) => m.id);
+
+      // ----------  ledgers ----------
+      const totals = Object.fromEntries(ids.map((id) => [id, 0]));
+      const ledger = {};
+      ids.forEach((a) => {
+        ledger[a] = {};
+        ids.forEach((b) => {
+          if (a !== b) ledger[a][b] = 0;
+        });
       });
 
-      // ---------- apply expenses
+      // ----------  apply expenses ----------
       for (const exp of expenses) {
-        if (exp.paidByUserId === me._id) {
-          // I paid; others may owe me
-          exp.splits.forEach((split) => {
-            if (split.userId !== me._id && !split.paid) {
-              balances[split.userId].owed += split.amount;
-            }
-          });
-        } else if (balances[exp.paidByUserId]) {
-          // Someone else in the group paid; I may owe them
-          const split = exp.splits.find((s) => s.userId === me._id && !s.paid);
-          if (split) balances[exp.paidByUserId].owing += split.amount;
+        const payer = exp.paidByUserId;
+        for (const split of exp.splits) {
+          if (split.userId === payer || split.paid) continue;
+          const debtor = split.userId;
+          const amt = split.amount;
+
+          totals[payer] += amt;
+          totals[debtor] -= amt;
+
+          ledger[debtor][payer] += amt;
         }
       }
 
-      // ---------- apply settlements within the group
+      // ----------  apply settlements ----------
       const settlements = await ctx.db
         .query("settlements")
         .filter((q) => q.eq(q.field("groupId"), group._id))
         .collect();
 
-      for (const st of settlements) {
-        // we only care if ONE side is me
-        if (st.paidByUserId === me._id && balances[st.receivedByUserId]) {
-          balances[st.receivedByUserId].owing = Math.max(
-            0,
-            balances[st.receivedByUserId].owing - st.amount
-          );
-        }
-        if (st.receivedByUserId === me._id && balances[st.paidByUserId]) {
-          balances[st.paidByUserId].owed = Math.max(
-            0,
-            balances[st.paidByUserId].owed - st.amount
-          );
-        }
+      for (const s of settlements) {
+        totals[s.paidByUserId] += s.amount;
+        totals[s.receivedByUserId] -= s.amount;
+
+        ledger[s.paidByUserId][s.receivedByUserId] -= s.amount;
       }
 
-      // ---------- shape result list
-      const members = await Promise.all(
-        Object.keys(balances).map((id) => ctx.db.get(id))
-      );
-
-      const list = Object.keys(balances).map((uid) => {
-        const m = members.find((u) => u && u._id === uid);
-        const { owed, owing } = balances[uid];
-        return {
-          userId: uid,
-          name: m?.name || "Unknown",
-          imageUrl: m?.imageUrl,
-          youAreOwed: owed,
-          youOwe: owing,
-          netBalance: owed - owing,
-        };
+      // ----------  net the pair‑wise ledger ----------
+      ids.forEach((a) => {
+        ids.forEach((b) => {
+          if (a >= b) return;
+          const diff = ledger[a][b] - ledger[b][a];
+          if (diff > 0) {
+            ledger[a][b] = diff;
+            ledger[b][a] = 0;
+          } else if (diff < 0) {
+            ledger[b][a] = -diff;
+            ledger[a][b] = 0;
+          } else {
+            ledger[a][b] = ledger[b][a] = 0;
+          }
+        });
       });
+
+      // ----------  Greedy Debt Simplification ----------
+      const netBalances = { ...totals };
+      const simplifiedDebts = [];
+      const creditors = [];
+      const debtors = [];
+
+      for (const [id, bal] of Object.entries(netBalances)) {
+        if (bal > 0.005) creditors.push({ id, amount: bal });
+        else if (bal < -0.005) debtors.push({ id, amount: -bal });
+      }
+
+      creditors.sort((a, b) => b.amount - a.amount);
+      debtors.sort((a, b) => b.amount - a.amount);
+
+      let ci = 0;
+      let di = 0;
+
+      while (ci < creditors.length && di < debtors.length) {
+        const creditor = creditors[ci];
+        const debtor = debtors[di];
+        const settleAmount = Math.min(creditor.amount, debtor.amount);
+
+        if (settleAmount > 0.005) {
+          simplifiedDebts.push({
+            from: debtor.id,
+            to: creditor.id,
+            amount: Math.round(settleAmount * 100) / 100,
+          });
+        }
+
+        creditor.amount -= settleAmount;
+        debtor.amount -= settleAmount;
+
+        if (creditor.amount < 0.005) ci++;
+        if (debtor.amount < 0.005) di++;
+      }
+
+      // ---------- shape result list (relative to 'me') ----------
+      const list = ids
+        .filter((uid) => uid !== me._id)
+        .map((uid) => {
+          const m = memberDetails.find((u) => u.id === uid);
+          const youOwe = ledger[me._id][uid] || 0;
+          const youAreOwed = ledger[uid][me._id] || 0;
+          return {
+            userId: uid,
+            name: m?.name || "Unknown",
+            imageUrl: m?.imageUrl,
+            youAreOwed,
+            youOwe,
+            netBalance: youAreOwed - youOwe,
+          };
+        });
 
       return {
         type: "group",
@@ -243,6 +307,7 @@ export const getSettlementData = query({
           description: group.description,
         },
         balances: list,
+        simplifiedDebts: simplifiedDebts.filter((d) => d.from === me._id),
       };
     }
 
